@@ -26,10 +26,14 @@ using Ukulele_Fantasy.Properties;
 
 namespace Ukulele_Fantasy
 {
-    public partial class EntryPoint : DarkForm
+    public partial class EntryPoint : Form
     {
         [DllImport("gdi32.dll")]
         private static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, [In] ref uint pcFonts);
+
+        Spectrogram.Colormap[] cmaps;
+
+        private Spectrogram.SpectrogramGenerator spec;
 
         #region AudioVariables
 
@@ -117,8 +121,8 @@ namespace Ukulele_Fantasy
 
 
 
-            lblClosestNote.Font = new Font(pfc.Families[0], lblClosestNote.Font.Size);
-            lblBigHz.Font = new Font(pfc.Families[0], lblBigHz.Font.Size);
+            //lblClosestNote.Font = new Font(pfc.Families[0], lblClosestNote.Font.Size);
+            //lblBigHz.Font = new Font(pfc.Families[0], lblBigHz.Font.Size);
         }
 
         /// <summary>
@@ -166,6 +170,7 @@ namespace Ukulele_Fantasy
 
             iGVars.EntryPoint = this;
             myQ = new Queue<double>(Enumerable.Repeat(0.0, n).ToList()); // fill myQ w/ zeros
+            /*
             lChart.ChartAreas[0].AxisY.Minimum = -10000;
             lChart.ChartAreas[0].AxisY.Maximum = 10000;
 
@@ -180,7 +185,7 @@ namespace Ukulele_Fantasy
             this.lChart.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.FromName("Transparent");
             this.lChart.ChartAreas[0].AxisX.LabelStyle.ForeColor = Color.FromArgb(220, 220, 220);
             this.lChart.ChartAreas[0].AxisY.LabelStyle.ForeColor = Color.FromArgb(220, 220, 220);
-
+            */
             _soundPlayer = new SoundPlayer(Properties.Resources.metronome);
             _soundPlayer.Load();
 
@@ -199,9 +204,9 @@ namespace Ukulele_Fantasy
                 pot1.Value = GVars.DelayBetweenNotes;
                 pot2.Value = GVars.NoiseGate;
                 tbThreshold.Value = GVars.Threshold;
-                lblThreshold.Text = GVars.Threshold.ToString();
-                lblLatency.Text = GVars.DelayBetweenNotes.ToString();
-                lblNoiseGate.Text = GVars.NoiseGate.ToString();
+                lblThreshold.Text = lblThreshold.Text = "Threshold:      " + string.Format("{0:0}", GVars.Threshold);
+                lblLatency.Text = "Latency:        " + GVars.DelayBetweenNotes.ToString();
+                lblNoiseGate.Text = "Noise Gate:    " + GVars.NoiseGate.ToString();
 
             }
             catch (Exception ex)
@@ -300,7 +305,8 @@ namespace Ukulele_Fantasy
                 var waveIn = new WaveInEvent
                 {
                     DeviceNumber = cbInputDevices.SelectedIndex,
-                    WaveFormat = new WaveFormat(44100, 1)
+                    WaveFormat = new WaveFormat(44100, 1),
+                    BufferMilliseconds = 20
                 };
 
                 waveIn.DataAvailable += WaveIn_DataAvailable;
@@ -324,6 +330,8 @@ namespace Ukulele_Fantasy
             {
                 if (_bufferedWaveProvider != null)
                 {
+
+
                     _bufferedWaveProvider.AddSamples(e.Buffer, 0, e.BytesRecorded);
                     _bufferedWaveProvider.DiscardOnBufferOverflow = true;
 
@@ -342,6 +350,8 @@ namespace Ukulele_Fantasy
 
                     UpdateAudioLevelProgressBar((int)(100 * max));
                     GVars.CurrentVolume = (int)(100 * max);
+
+                    UpdateVolumeOutputLabel(((int)(100 * max)).ToString());
 
                     GVars.LastVolumePlayed = 100 * max;
 
@@ -368,6 +378,7 @@ namespace Ukulele_Fantasy
 
         private void UpdateAudioLevelProgressBar(int value)
         {
+            /*
             if (pbAudioLevel.InvokeRequired)
             {
                 pbAudioLevel.Invoke((Action)(delegate
@@ -381,6 +392,7 @@ namespace Ukulele_Fantasy
                 pbAudioLevel.Value = value;
                 UpdateVolumeOutputLabel(value.ToString());
             }
+            */
         }
 
         private void SetInputDeviceRecordingVolume()
@@ -438,12 +450,12 @@ namespace Ukulele_Fantasy
             {
                 lblCurrentVolumeOutput.Invoke((Action)(delegate
                {
-                   lblCurrentVolumeOutput.Text = value;
+                   lblCurrentVolumeOutput.Text = "Input Volume:  " + value.ToString() + "%";
                }));
             }
             else
             {
-                lblCurrentVolumeOutput.Text = value;
+                lblCurrentVolumeOutput.Text = "Input Volume:  " + value.ToString() + "%";
             }
         }
 
@@ -453,27 +465,27 @@ namespace Ukulele_Fantasy
             {
                 lblPeakVolume.Invoke((Action)(delegate
                 {
-                    lblPeakVolume.Text = value;
+                    lblPeakVolume.Text = "Peak Volume:   " + value.ToString() + "%";
                 }));
             }
             else
             {
-                lblPeakVolume.Text = value;
+                lblPeakVolume.Text = "Peak Volume:   " + value.ToString() + "%";
             }
         }
 
-        private void UpdateCurrentPitchLabel(string value)
+        private void UpdateCurrentPitchLabel(float value)
         {
             if (lblCurrentPitchOutput.InvokeRequired)
             {
                 lblCurrentPitchOutput.Invoke((Action)(delegate
-                {
-                    lblCurrentPitchOutput.Text = value;
+                { 
+                    lblCurrentPitchOutput.Text = "Pitch:     " + String.Format("{0:0.00}", value) + "hz";
                 }));
             }
             else
             {
-                lblCurrentPitchOutput.Text = value;
+                lblCurrentPitchOutput.Text = "Pitch:      " + String.Format("{0:0.00}", value) + "hz";
             }
         }
 
@@ -483,12 +495,12 @@ namespace Ukulele_Fantasy
             {
                 lblSystemVolumeLevel.Invoke((Action)(delegate
                 {
-                    lblSystemVolumeLevel.Text = value;
+                    lblSystemVolumeLevel.Text = "System Volume: " + value.ToString() + "%";
                 }));
             }
             else
             {
-                lblSystemVolumeLevel.Text = value;
+                lblSystemVolumeLevel.Text = "System Volume: " + value.ToString() + "%";
             }
         }
 
@@ -513,12 +525,12 @@ namespace Ukulele_Fantasy
             {
                 lblLastNoteDetected.Invoke((Action)(delegate
                 {
-                    lblLastNoteDetected.Text = value;
+                    lblLastNoteDetected.Text = "Detected Note:  " + value;
                 }));
             }
             else
             {
-                lblLastNoteDetected.Text = value;
+                lblLastNoteDetected.Text ="Detected Note:  " + value;
             }
         }
 
@@ -596,12 +608,7 @@ namespace Ukulele_Fantasy
         {
             GVars.Threshold = (int)tbThreshold.Value;
             SaveConfig();
-            lblThreshold.Text = tbThreshold.Value.ToString();
-        }
-
-        private void btnResetPeakValue_Click(object sender, EventArgs e)
-        {
-            _inputDevicePeakVolume = 0;
+            lblThreshold.Text = "Threshold:      " + string.Format("{0:0}", tbThreshold.Value);
         }
 
         private void btnListen_Click(object sender, EventArgs e)
@@ -640,6 +647,7 @@ namespace Ukulele_Fantasy
         /// <param name="e"></param>
         private void bgwMonitor_DoWork(object sender, DoWorkEventArgs e)
         {
+
             UpdateExternalLog("Initiating note recognition system.");
             var stream = new Wave16ToFloatProvider(_bufferedWaveProvider);
             var pitch = new Pitch(stream);
@@ -650,12 +658,13 @@ namespace Ukulele_Fantasy
             UpdateExternalLog("Bard Music Studio initiated, awaiting input.");
             do
             {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
                 var freq = pitch.Get(buffer);
                 var note = GetNote(freq);
 
                 if (freq != 0)
                 {
+                    UpdateCurrentPitchLabel(freq);
+
                     if (!string.IsNullOrEmpty(note))
                     {
                         UpdateLastNotePlayedLabel(note);
@@ -803,7 +812,7 @@ namespace Ukulele_Fantasy
         {
             try
             {
-                lChart.Series["Series1"].Points.DataBindY(myQ);
+                //lChart.Series["Series1"].Points.DataBindY(myQ);
                 //chart1.ResetAutoValues();
             }
             catch
@@ -816,14 +825,14 @@ namespace Ukulele_Fantasy
         {
             SaveConfig();
             GVars.DelayBetweenNotes = (int)pot1.Value;
-            lblLatency.Text = GVars.DelayBetweenNotes.ToString();
+            lblLatency.Text = "Latency:        " + GVars.DelayBetweenNotes.ToString();
         }
 
         private void pot2_ValueChanged(object sender, EventArgs e)
         {
             SaveConfig();
             GVars.NoiseGate = (int)pot2.Value;
-            lblNoiseGate.Text = GVars.NoiseGate.ToString();
+            lblNoiseGate.Text = "Noise Gate:    " + GVars.NoiseGate.ToString();
         }
 
         private void colorSlider1_ValueChanged(object sender, EventArgs e)
@@ -850,7 +859,7 @@ namespace Ukulele_Fantasy
 
         private void pbSupport_Click(object sender, EventArgs e)
         {
-            contributeToolStripMenuItem.ShowDropDown();
+            //contributeToolStripMenuItem.ShowDropDown();
         }
 
         private void btnSelectMusicFolder_Click(object sender, EventArgs e)
@@ -978,6 +987,16 @@ namespace Ukulele_Fantasy
                     }
                 }
             }
+        }
+
+        private void EntryPoint_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tmrResetPeak_Tick(object sender, EventArgs e)
+        {
+            _inputDevicePeakVolume = 0;
         }
     }
 }
