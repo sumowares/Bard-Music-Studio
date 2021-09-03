@@ -644,7 +644,7 @@ namespace Ukulele_Fantasy
             var stream = new Wave16ToFloatProvider(_bufferedWaveProvider);
             var pitch = new Pitch(stream);
 
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[4096];
             int bytesRead;
 
             UpdateExternalLog("Bard Music Studio initiated, awaiting input.");
@@ -707,7 +707,7 @@ namespace Ukulele_Fantasy
                 baseFreq = note.Value;
                 for (int i = 0; i < 4; i++)
                 {
-                    if ((freq >= baseFreq - 4.5) && (freq < baseFreq + 4.5) || (freq == baseFreq))
+                    if ((freq >= baseFreq - 2.5) && (freq < baseFreq + 2.5) || (freq == baseFreq))
                     {
                         return note.Key + i;
                     }
@@ -715,54 +715,6 @@ namespace Ukulele_Fantasy
                 }
             }
             return null;
-        }
-
-        private string GetClosestNote(float freq)
-        {
-            float baseFreq;
-            foreach (var note in AudiableNotes.NoteFrequency)
-            {
-                baseFreq = note.Value;
-                for (int i = 0; i < 4; i++)
-                {
-                    if ((freq >= baseFreq - 40) && (freq < baseFreq + 40) || (freq == baseFreq))
-                    {
-                        //UpdateTuneUpOrDownLabel("");
-                        UpdateBigLabel(freq.ToString());
-                        //UpdateTuneDirection(note.Key, freq);
-                        return note.Key;
-                    }
-                    baseFreq *= 2;
-                }
-            }
-            return null;
-        }
-
-        private void UpdateTuneDirection(string note, float freq)
-        {
-            if (AudiableNotes.NoteFrequency.ContainsKey(note))
-            {
-                float v = AudiableNotes.NoteFrequency[note];
-                var downDirection = v - 2;
-                var upDirection = v + 2;
-
-                if (freq < v - 2)
-                {
-                    UpdateTuneUpOrDownLabel("Tune Up");
-                }
-                else if (freq > v + 2)
-                {
-                    UpdateTuneUpOrDownLabel("Tune Down");
-                }
-                else
-                {
-                    UpdateTuneUpOrDownLabel("Sounds Great!");
-                }
-            }
-            else
-            {
-                UpdateTuneUpOrDownLabel("");
-            }
         }
 
         public static double GetMyData(Dictionary<DateTime, double> MyData, DateTime Date)
@@ -777,8 +729,6 @@ namespace Ukulele_Fantasy
             else
                 return sorted[keys[~index - 1]];
         }
-
-
 
         private void tbThreshold_VisibleChanged(object sender, EventArgs e)
         {
@@ -996,17 +946,15 @@ namespace Ukulele_Fantasy
                 var stream = new Wave16ToFloatProvider(_bufferedWaveProvider);
                 var pitch = new Pitch(stream);
 
-                byte[] buffer = new byte[8192];
-                int bytesRead;
+                byte[] buffer = new byte[4096];
 
-                double closestFrequency;
                 string noteName;
 
                 var freq = pitch.Get(buffer);
 
-                if (freq != 0)
+                if (freq != 0 && GVars.CurrentVolume > GVars.Threshold)
                 {
-                    FindClosestNote(freq, out closestFrequency, out noteName);
+                    FindClosestNote(freq, out double closestFrequency, out noteName);
                     UpdateClosestNoteLabel(noteName);
 
                     UpdateBigLabel(String.Format("{0:0.00}", closestFrequency));
